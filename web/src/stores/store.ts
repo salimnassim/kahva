@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { type Torrent } from '@/types/torrent'
+import { IsViewResponse, type Torrent } from '@/types/torrent'
+import { IsSystemResponse, type System } from '@/types/system'
 
 export interface Indexable<T = any> {
   [key: string]: T
@@ -10,55 +11,126 @@ export interface Sorting {
   direction: boolean
 }
 
-export interface State {
-  ok: boolean
+export interface UserInterface {
   collator: Intl.Collator
   sorting: Sorting
-  torrents: Torrent[]
+  search: string
+  updateInterval: number
+  view: string
+}
+
+export interface State {
+  userInterface: UserInterface
+  torrents: Torrent[] | undefined
+  system: System | undefined
 }
 
 export const useStore = defineStore('store', {
   state: (): State => ({
-    ok: false,
-    collator: new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }),
-    sorting: {} as Sorting,
-    torrents: [] as Torrent[]
+    userInterface: {
+      collator: new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }),
+      sorting: { key: '', direction: false },
+      search: '',
+      updateInterval: 30,
+      view: 'main'
+    },
+    torrents: undefined,
+    system: undefined
   }),
   getters: {
+    ui: (state) => {
+      return state.userInterface
+    },
     // returns a filtered view of torrents
     filter: (state) => {
+      if (state.torrents === undefined) {
+        return undefined
+      }
+
+      let items = [] as Torrent[]
+
       // if sorting key is not set, reverse torrents so it will display latest torrents first
-      if (state.sorting.key === '') {
-        return state.torrents.reverse()
+      if (state.userInterface.sorting.key === '') {
+        items = state.torrents.reverse()
       }
       // if sorting key is set, sort by direction where true is ascending
-      if (state.sorting.key != '' && state.sorting.direction) {
-        return state.torrents.sort((a, b) =>
-          state.collator.compare(a[state.sorting.key], b[state.sorting.key])
+      if (state.userInterface.sorting.key != '' && state.userInterface.sorting.direction) {
+        items = state.torrents.sort((a, b) =>
+          state.userInterface.collator.compare(
+            a[state.userInterface.sorting.key],
+            b[state.userInterface.sorting.key]
+          )
         )
       }
       // if sorting key is set, sort by direction where false is descending
-      if (state.sorting.key != '' && !state.sorting.direction) {
-        return state.torrents.sort((a, b) =>
-          state.collator.compare(b[state.sorting.key], a[state.sorting.key])
+      if (state.userInterface.sorting.key != '' && !state.userInterface.sorting.direction) {
+        items = state.torrents.sort((a, b) =>
+          state.userInterface.collator.compare(
+            b[state.userInterface.sorting.key],
+            a[state.userInterface.sorting.key]
+          )
         )
       }
+
+      if (state.userInterface.search != '') {
+        items = items.filter((n) => n.name.toLocaleLowerCase().match(state.userInterface.search))
+      }
+
+      return items
     }
   },
   actions: {
-    // ping to check if backend is alive
-    async ping() {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_BASE_URL}/api/ping`, {
-        method: 'GET',
-      })
-      const json = await res.json()
-      console.log(json)
+    async sort(key: string, direction: boolean) {
+      this.ui.sorting.key = key
+      this.ui.sorting.direction = direction
     },
-    // refresh torrents
-    async refresh() {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_BASE_URL}/api/torrents`, {
-        method: 'GET'
-      })
+    async search(query: string) {
+      this.ui.search = query
+    },
+    // refresh view
+    async refreshView() {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_BASE_URL}/api/view/${this.userInterface.view}`,
+          {
+            method: 'GET'
+          }
+        )
+        if (!res.ok) {
+          console.error(res.status, res.statusText)
+          return
+        }
+        const json = await res.json()
+        if (!IsViewResponse(json)) {
+          console.error(`malformed view response`)
+          return
+        }
+        this.torrents = json.torrents
+      } catch (err: any) {
+        console.error(err)
+        return
+      }
+    },
+    // refresh system
+    async refreshSystem() {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_BASE_URL}/api/system`, {
+          method: 'GET'
+        })
+        if (!res.ok) {
+          console.error(res.status, res.statusText)
+          return
+        }
+        const json = await res.json()
+        if (!IsSystemResponse(json)) {
+          console.error(`malformed system response`)
+          return
+        }
+        this.system = json.system
+      } catch (err: any) {
+        console.error(err)
+        return
+      }
     }
   }
 })
