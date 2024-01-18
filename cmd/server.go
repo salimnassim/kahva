@@ -1,17 +1,22 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 	"github.com/salimnassim/kahva"
 )
 
 func main() {
 	transport := &http.Transport{}
+
+	if os.Getenv("XMLRPC_URL") == "" {
+		log.Fatal().Msgf("XMLRPC_URL environment variable is empty")
+		return
+	}
 
 	// enable basic auth if env is set
 	if os.Getenv("XMLRPC_USERNAME") != "" && os.Getenv("XMLRPC_PASSWORD") != "" {
@@ -29,15 +34,18 @@ func main() {
 			Transport: transport,
 		},
 	)
-
 	if err != nil {
-		log.Fatalf("unable to create rtorrent client instance: %v", err)
+		log.Fatal().Err(err).Msgf("unable to create rtorrent client instance")
 		return
 	}
-
 	defer rtorrent.Close()
 
+	fs := http.FileServer(http.Dir("./www"))
+
 	r := mux.NewRouter()
+	r.Handle("/", fs)
+	r.PathPrefix("/assets/").Handler(fs)
+
 	s := r.PathPrefix("/api").Subrouter()
 	s.HandleFunc("/view/{view}", kahva.ViewHandler(rtorrent))
 	s.HandleFunc("/system", kahva.SystemHandler(rtorrent))
@@ -46,20 +54,25 @@ func main() {
 	// s.HandleFunc("/torrent/{hash}/{action}", TorrentHandler(rtorrent))
 	s.Use(kahva.CORSMiddleware)
 
+	address := os.Getenv("SERVER_ADDRESS")
+	if address == "" {
+		address = "0.0.0.0:8080"
+	}
+
 	srv := &http.Server{
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
-		Addr:              os.Getenv("SERVER_ADDRESS"),
+		Addr:              address,
 		Handler:           r,
 	}
 
-	log.Printf("listen address: http://%s", srv.Addr)
+	log.Info().Msgf("listen address: http://%s", srv.Addr)
 	err = srv.ListenAndServe()
 	if err != nil {
-		log.Fatalf("server failure: %s", err)
+		log.Fatal().Err(err).Msg("cant serve")
+		return
 	}
-
 }
 
 type basicAuthTransport struct {
