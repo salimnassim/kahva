@@ -274,6 +274,5 @@ func systemTags(result interface{}, args interface{}) System {
 			}
 		}
 	}
-
 	return *system
 }

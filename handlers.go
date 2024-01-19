@@ -1,7 +1,9 @@
 package kahva
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -60,14 +62,10 @@ func ViewHandler(rt *Rtorrent) http.HandlerFunc {
 			return
 		}
 
-		respond(
-			ViewResponse{
-				Status:   "ok",
-				Torrents: torrents,
-			},
-			http.StatusOK,
-			w,
-		)
+		respond(ViewResponse{
+			Status:   "ok",
+			Torrents: torrents,
+		}, http.StatusOK, w)
 	}
 }
 
@@ -138,6 +136,47 @@ func SystemHandler(rt *Rtorrent) http.HandlerFunc {
 		respond(SystemResponse{
 			Status: "ok",
 			System: result,
+		}, http.StatusOK, w)
+	}
+}
+
+func LoadHandler(rt *Rtorrent) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.ParseMultipartForm(10 << 20)
+
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			log.Error().Err(err).Msg("cant read file form")
+			respond(Response{
+				Status:  "error",
+				Message: err.Error(),
+			}, http.StatusBadRequest, w)
+			return
+		}
+		defer file.Close()
+
+		buffer := bytes.NewBuffer(nil)
+		_, err = io.Copy(buffer, file)
+		if err != nil {
+			log.Error().Err(err).Msg("cant copy file to buffer")
+			respond(Response{
+				Status:  "error",
+				Message: err.Error(),
+			}, http.StatusBadRequest, w)
+			return
+		}
+
+		err = rt.LoadRawStart(buffer.Bytes())
+		if err != nil {
+			log.Error().Err(err).Msg("xmlrpc load raw start failed")
+			respond(Response{
+				Status:  "error",
+				Message: err.Error(),
+			}, http.StatusInternalServerError, w)
+			return
+		}
+		respond(Response{
+			Status: "ok",
 		}, http.StatusOK, w)
 	}
 }
