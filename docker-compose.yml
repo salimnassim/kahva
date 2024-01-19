@@ -1,0 +1,15 @@
+services:
+  backend:
+    restart: on-failure
+    image: kahva:latest
+    container_name: kahva
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SERVER_ADDRESS: 0.0.0.0:8080
+      XMLRPC_URL: https://yourserver.tld/rpc
+      # XMLRPC_USERNAME: username
+      # XMLRPC_PASSWORD: password
+    ports:
+      - "8080:8080"
