@@ -49,8 +49,7 @@ func main() {
 	s := r.PathPrefix("/api").Subrouter()
 	s.HandleFunc("/view/{view}", kahva.ViewHandler(rtorrent))
 	s.HandleFunc("/system", kahva.SystemHandler(rtorrent))
-	// s.HandleFunc("/load", LoadHandler(rtorrent)).Methods("POST")
-	// s.HandleFunc("/methods", MethodsHandler(rtorrent))
+	s.HandleFunc("/load", kahva.LoadHandler(rtorrent)).Methods("POST")
 	// s.HandleFunc("/torrent/{hash}/{action}", TorrentHandler(rtorrent))
 	s.Use(kahva.CORSMiddleware)
 
