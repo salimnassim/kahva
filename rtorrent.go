@@ -46,7 +46,7 @@ type File struct {
 }
 
 type Peer struct {
-	PeerID           string `rt:"p.id=" json:"peer_id"`
+	ID               string `rt:"p.id=" json:"id"`
 	Address          string `rt:"p.address=" json:"address"`
 	Port             int64  `rt:"p.port=" json:"port"`
 	Banned           int64  `rt:"p.banned=" json:"banned"`
@@ -55,14 +55,14 @@ type Peer struct {
 	IsEncrypted      int64  `rt:"p.is_encrypted=" json:"is_encrypted"`
 	IsIncoming       int64  `rt:"p.is_incoming=" json:"is_incoming"`
 	IsObfuscated     int64  `rt:"p.is_obfuscated=" json:"is_obfuscated"`
-	PeerRate         int64  `rt:"p.peer_rate=" json:"peer_rate"`
-	PeerTotal        int64  `rt:"p.peer_total=" json:"peer_total"`
+	DownloadRate     int64  `rt:"p.peer_rate=" json:"down_rate"`
+	DownloadTotal    int64  `rt:"p.peer_total=" json:"down_total"`
 	UploadRate       int64  `rt:"p.up_rate=" json:"up_rate"`
 	UploadTotal      int64  `rt:"p.up_total=" json:"up_total"`
 }
 
 type Tracker struct {
-	TrackerID        string `rt:"t.id=" json:"tracker_id"`
+	ID               string `rt:"t.id=" json:"tracker_id"`
 	ActivityTimeLast int64  `rt:"t.activity_time_last=" json:"activity_time_last"`
 	ActivityTimeNext int64  `rt:"t.activity_time_next=" json:"activity_time_next"`
 	CanScrape        int64  `rt:"t.can_scrape=" json:"can_scrape"`
@@ -71,6 +71,7 @@ type Tracker struct {
 	FailedCounter    int64  `rt:"t.failed_counter=" json:"failed_counter"`
 	FailedTimeLast   int64  `rt:"t.failed_time_last=" json:"failed_time_last"`
 	FailedTimeNext   int64  `rt:"t.failed_time_next=" json:"failed_time_next"`
+	LatestEvent      string `rt:"t.latest_event=" json:"latest_event"`
 	IsBusy           int64  `rt:"t.is_busy=" json:"is_busy"`
 	IsOpen           int64  `rt:"t.is_open=" json:"is_open"`
 	Type             int64  `rt:"t.type=" json:"type"`
