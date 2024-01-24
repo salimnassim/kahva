@@ -25,6 +25,21 @@ type SystemResponse struct {
 	System System `json:"system"`
 }
 
+type FilesResponse struct {
+	Status string `json:"status"`
+	Files  []File `json:"files"`
+}
+
+type PeersResponse struct {
+	Status string `json:"status"`
+	Peers  []Peer `json:"peers"`
+}
+
+type TrackersResponse struct {
+	Status   string    `json:"status"`
+	Trackers []Tracker `json:"trackers"`
+}
+
 func respond(anything any, statusCode int, w http.ResponseWriter) {
 	bytes, err := json.Marshal(anything)
 	if err != nil {
@@ -178,5 +193,117 @@ func LoadHandler(rt *Rtorrent) http.HandlerFunc {
 		respond(Response{
 			Status: "ok",
 		}, http.StatusOK, w)
+	}
+}
+
+func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+
+		if vars["action"] == "stop" {
+			err := rt.Stop(vars["hash"])
+			if err != nil {
+				log.Printf("error in action stop handler: %s", err)
+				respond(Response{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusInternalServerError, w)
+				return
+			}
+			respond(Response{
+				Status: "ok",
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "start" {
+			err := rt.Start(vars["hash"])
+			if err != nil {
+				log.Printf("error in action start handler: %s", err)
+				respond(Response{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+			respond(Response{
+				Status: "ok",
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "files" {
+			args := []interface{}{vars["hash"], "",
+				"f.path=", "f.size_bytes=", "f.size_chunks=",
+				"f.completed_chunks=", "f.frozen_path=", "f.priority=",
+				"f.is_created=", "f.is_open="}
+
+			files, err := rt.FMulticall(args)
+			if err != nil {
+				log.Printf("error in action files handler: %s", err)
+				respond(Response{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+
+			respond(FilesResponse{
+				Status: "ok",
+				Files:  files,
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "peers" {
+			args := []interface{}{vars["hash"], "",
+				"p.id=", "p.address=", "p.port=",
+				"p.banned=", "p.client_version=", "p.completed_percent=",
+				"p.is_encrypted=", "p.is_incoming=", "p.is_obfuscated=",
+				"p.peer_rate=", "p.peer_total=", "p.up_rate=", "p.up_total="}
+
+			peers, err := rt.PMulticall(args)
+			if err != nil {
+				log.Printf("error in action peers handler: %s", err)
+				respond(Response{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+
+			respond(PeersResponse{
+				Status: "ok",
+				Peers:  peers,
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "trackers" {
+			args := []interface{}{vars["hash"], "",
+				"t.id=", "t.type=", "t.url=",
+				"t.activity_time_last=", "t.activity_time_next=", "t.can_scrape=",
+				"t.is_usable=", "t.is_enabled=", "t.failed_counter=",
+				"t.failed_time_last=", "t.failed_time_next=", "t.is_busy=",
+				"t.is_open=",
+			}
+
+			trackers, err := rt.TMulticall(args)
+			if err != nil {
+				log.Printf("error in action trackers handler: %s", err)
+				respond(Response{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+
+			respond(TrackersResponse{
+				Status:   "ok",
+				Trackers: trackers,
+			}, http.StatusOK, w)
+			return
+		}
+
 	}
 }
