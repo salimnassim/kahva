@@ -50,7 +50,7 @@ func main() {
 	s.HandleFunc("/view/{view}", kahva.ViewHandler(rtorrent))
 	s.HandleFunc("/system", kahva.SystemHandler(rtorrent))
 	s.HandleFunc("/load", kahva.LoadHandler(rtorrent)).Methods("POST")
-	// s.HandleFunc("/torrent/{hash}/{action}", TorrentHandler(rtorrent))
+	s.HandleFunc("/torrent/{hash}/{action}", kahva.TorrentHandler(rtorrent))
 	s.Use(kahva.CORSMiddleware)
 
 	address := os.Getenv("SERVER_ADDRESS")
