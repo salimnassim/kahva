@@ -226,7 +226,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 		if vars["action"] == "stop" {
 			err := rt.Stop(vars["hash"])
 			if err != nil {
-				log.Printf("error in action stop handler: %s", err)
+				log.Error().Err(err).Msg("unable to stop torrent in action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
@@ -242,7 +242,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 		if vars["action"] == "pause" {
 			err := rt.Pause(vars["hash"])
 			if err != nil {
-				log.Printf("error in action stop handler: %s", err)
+				log.Error().Err(err).Msg("unable to pause torrent in action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
@@ -258,7 +258,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 		if vars["action"] == "resume" {
 			err := rt.Resume(vars["hash"])
 			if err != nil {
-				log.Printf("error in action stop handler: %s", err)
+				log.Error().Err(err).Msg("unable to resume torrent in action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
@@ -274,7 +274,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 		if vars["action"] == "start" {
 			err := rt.Start(vars["hash"])
 			if err != nil {
-				log.Printf("error in action start handler: %s", err)
+				log.Error().Err(err).Msg("unable to start torrent in action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
@@ -290,7 +290,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 		if vars["action"] == "hash" {
 			err := rt.CheckHash(vars["hash"])
 			if err != nil {
-				log.Printf("error in action start handler: %s", err)
+				log.Error().Err(err).Msg("unable to hash torrent in action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
@@ -311,7 +311,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 
 			files, err := rt.FMulticall(args)
 			if err != nil {
-				log.Printf("error in action files handler: %s", err)
+				log.Error().Err(err).Msg("unable to fetch files in torrent action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
@@ -335,7 +335,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 
 			peers, err := rt.PMulticall(args)
 			if err != nil {
-				log.Printf("error in action peers handler: %s", err)
+				log.Error().Err(err).Msg("unable to fetch peers in torrent action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
@@ -361,7 +361,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 
 			trackers, err := rt.TMulticall(args)
 			if err != nil {
-				log.Printf("error in action trackers handler: %s", err)
+				log.Error().Err(err).Msg("unable to fetch trackers in torrent action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
@@ -404,6 +404,5 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 			}, http.StatusOK, w)
 			return
 		}
-
 	}
 }
