@@ -2,8 +2,10 @@ package kahva
 
 import (
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"reflect"
+	"strconv"
 
 	"github.com/kolo/xmlrpc"
 )
@@ -164,6 +166,66 @@ func (rt *Rtorrent) Stop(hash string) error {
 // Start torrent with the specified hash
 func (rt *Rtorrent) Start(hash string) error {
 	err := rt.client.Call("d.start", hash, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Pause torrent with the specified hash
+func (rt *Rtorrent) Pause(hash string) error {
+	err := rt.client.Call("d.pause", hash, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Pause torrent with the specified hash
+func (rt *Rtorrent) Resume(hash string) error {
+	err := rt.client.Call("d.resume", hash, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Pause torrent with the specified hash
+func (rt *Rtorrent) CheckHash(hash string) error {
+	err := rt.client.Call("d.check_hash", hash, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Set torrent priority
+func (rt *Rtorrent) Priority(hash string, priority int) error {
+	if priority < 0 || priority > 3 {
+		return errors.New("invalid priority")
+	}
+
+	err := rt.client.Call("d.priority.set", []interface{}{hash, priority}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Set global down throttle.
+func (rt *Rtorrent) GlobalThrottleDown(kilobytes int) error {
+	kb := strconv.Itoa(kilobytes)
+	err := rt.client.Call("throttle.global_down.max_rate.set_kb", []interface{}{"", kb}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Set global up throttle.
+func (rt *Rtorrent) GlobalThrottleUp(kilobytes int) error {
+	kb := strconv.Itoa(kilobytes)
+	err := rt.client.Call("throttle.global_up.max_rate.set_kb", []interface{}{"", kb}, nil)
 	if err != nil {
 		return err
 	}

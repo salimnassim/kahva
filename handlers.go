@@ -10,36 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Response struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
-}
-
-type ViewResponse struct {
-	Status   string    `json:"status"`
-	Torrents []Torrent `json:"torrents"`
-}
-
-type SystemResponse struct {
-	Status string `json:"status"`
-	System System `json:"system"`
-}
-
-type FilesResponse struct {
-	Status string `json:"status"`
-	Files  []File `json:"files"`
-}
-
-type PeersResponse struct {
-	Status string `json:"status"`
-	Peers  []Peer `json:"peers"`
-}
-
-type TrackersResponse struct {
-	Status   string    `json:"status"`
-	Trackers []Tracker `json:"trackers"`
-}
-
 func respond(anything any, statusCode int, w http.ResponseWriter) {
 	bytes, err := json.Marshal(anything)
 	if err != nil {
@@ -70,7 +40,7 @@ func ViewHandler(rt *Rtorrent) http.HandlerFunc {
 		torrents, err := rt.DMulticall("main", args)
 		if err != nil {
 			log.Error().Err(err).Msgf("cant fetch view")
-			respond(Response{
+			respond(ErrorResponse{
 				Status:  "error",
 				Message: err.Error(),
 			}, http.StatusBadRequest, w)
@@ -142,7 +112,7 @@ func SystemHandler(rt *Rtorrent) http.HandlerFunc {
 		result, err := rt.SystemMulticall(args)
 		if err != nil {
 			log.Error().Err(err).Msgf("cant fetch system")
-			respond(Response{
+			respond(ErrorResponse{
 				Status:  "error",
 				Message: err.Error(),
 			}, http.StatusInternalServerError, w)
@@ -155,6 +125,59 @@ func SystemHandler(rt *Rtorrent) http.HandlerFunc {
 	}
 }
 
+func ThrottleHandler(rt *Rtorrent) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+		var req ThrottleRequest
+		err := decoder.Decode(&req)
+		if err != nil {
+			log.Error().Err(err).Msg("cant decode throttle request json")
+			respond(ErrorResponse{
+				Status:  "error",
+				Message: err.Error(),
+			}, http.StatusBadRequest, w)
+			return
+		}
+
+		if req.Type != "up" && req.Type != "down" {
+			respond(ErrorResponse{
+				Status:  "error",
+				Message: "type must be up or down",
+			}, http.StatusBadRequest, w)
+			return
+		}
+
+		if req.Type == "up" {
+			err := rt.GlobalThrottleUp(req.Kilobytes)
+			if err != nil {
+				log.Error().Err(err).Msg("cant set global up throttle")
+				respond(ErrorResponse{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+		}
+
+		if req.Type == "down" {
+			err := rt.GlobalThrottleDown(req.Kilobytes)
+			if err != nil {
+				log.Error().Err(err).Msg("cant set global down throttle")
+				respond(ErrorResponse{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+		}
+
+		respond(Response{
+			Status:  "ok",
+			Message: "",
+		}, http.StatusOK, w)
+	}
+}
+
 func LoadHandler(rt *Rtorrent) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(10 << 20)
@@ -162,7 +185,7 @@ func LoadHandler(rt *Rtorrent) http.HandlerFunc {
 		file, _, err := r.FormFile("file")
 		if err != nil {
 			log.Error().Err(err).Msg("cant read file form")
-			respond(Response{
+			respond(ErrorResponse{
 				Status:  "error",
 				Message: err.Error(),
 			}, http.StatusBadRequest, w)
@@ -174,7 +197,7 @@ func LoadHandler(rt *Rtorrent) http.HandlerFunc {
 		_, err = io.Copy(buffer, file)
 		if err != nil {
 			log.Error().Err(err).Msg("cant copy file to buffer")
-			respond(Response{
+			respond(ErrorResponse{
 				Status:  "error",
 				Message: err.Error(),
 			}, http.StatusBadRequest, w)
@@ -184,7 +207,7 @@ func LoadHandler(rt *Rtorrent) http.HandlerFunc {
 		err = rt.LoadRawStart(buffer.Bytes())
 		if err != nil {
 			log.Error().Err(err).Msg("xmlrpc load raw start failed")
-			respond(Response{
+			respond(ErrorResponse{
 				Status:  "error",
 				Message: err.Error(),
 			}, http.StatusInternalServerError, w)
@@ -204,7 +227,39 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 			err := rt.Stop(vars["hash"])
 			if err != nil {
 				log.Printf("error in action stop handler: %s", err)
-				respond(Response{
+				respond(ErrorResponse{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusInternalServerError, w)
+				return
+			}
+			respond(Response{
+				Status: "ok",
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "pause" {
+			err := rt.Pause(vars["hash"])
+			if err != nil {
+				log.Printf("error in action stop handler: %s", err)
+				respond(ErrorResponse{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusInternalServerError, w)
+				return
+			}
+			respond(Response{
+				Status: "ok",
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "resume" {
+			err := rt.Resume(vars["hash"])
+			if err != nil {
+				log.Printf("error in action stop handler: %s", err)
+				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
 				}, http.StatusInternalServerError, w)
@@ -220,7 +275,23 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 			err := rt.Start(vars["hash"])
 			if err != nil {
 				log.Printf("error in action start handler: %s", err)
-				respond(Response{
+				respond(ErrorResponse{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+			respond(Response{
+				Status: "ok",
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "hash" {
+			err := rt.CheckHash(vars["hash"])
+			if err != nil {
+				log.Printf("error in action start handler: %s", err)
+				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
 				}, http.StatusBadRequest, w)
@@ -241,7 +312,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 			files, err := rt.FMulticall(args)
 			if err != nil {
 				log.Printf("error in action files handler: %s", err)
-				respond(Response{
+				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
 				}, http.StatusBadRequest, w)
@@ -265,7 +336,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 			peers, err := rt.PMulticall(args)
 			if err != nil {
 				log.Printf("error in action peers handler: %s", err)
-				respond(Response{
+				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
 				}, http.StatusBadRequest, w)
@@ -291,7 +362,7 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 			trackers, err := rt.TMulticall(args)
 			if err != nil {
 				log.Printf("error in action trackers handler: %s", err)
-				respond(Response{
+				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
 				}, http.StatusBadRequest, w)
@@ -301,6 +372,35 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 			respond(TrackersResponse{
 				Status:   "ok",
 				Trackers: trackers,
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "priority" {
+			decoder := json.NewDecoder(r.Body)
+			var req TorrentPriorityRequest
+			err := decoder.Decode(&req)
+			if err != nil {
+				log.Error().Err(err).Msg("unable to decode priority request")
+				respond(ErrorResponse{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusOK, w)
+				return
+			}
+
+			err = rt.Priority(vars["hash"], req.Priority)
+			if err != nil {
+				log.Error().Err(err).Msg("unable to set torrent priority")
+				respond(ErrorResponse{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+
+			respond(Response{
+				Status: "ok",
 			}, http.StatusOK, w)
 			return
 		}

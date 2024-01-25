@@ -50,7 +50,9 @@ func main() {
 	s.HandleFunc("/view/{view}", kahva.ViewHandler(rtorrent))
 	s.HandleFunc("/system", kahva.SystemHandler(rtorrent))
 	s.HandleFunc("/load", kahva.LoadHandler(rtorrent)).Methods("POST")
-	s.HandleFunc("/torrent/{hash}/{action}", kahva.TorrentHandler(rtorrent))
+	// todo: use post body instead of action fragment
+	s.HandleFunc("/torrent/{hash}/{action}", kahva.TorrentHandler(rtorrent)).Methods("GET", "POST")
+	s.HandleFunc("/throttle", kahva.ThrottleHandler(rtorrent)).Methods("POST")
 	s.Use(kahva.CORSMiddleware)
 
 	address := os.Getenv("SERVER_ADDRESS")
