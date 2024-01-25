@@ -1,21 +1,38 @@
 # kahva
 
-Web client for rTorrent.
+XML-RPC/JSON API and web client for rTorrent.
 
-The backend is used to deserialize XML-RPC requests from rTorrent to more browser friendly JSON presentation. It also serves the static Vue frontend so a dedicated HTTP server is not required.
+The backend is used to deserialize XML-RPC requests from rTorrent to more browser friendly JSON presentation. It also serves the [optional Vue frontend](https://github.com/salimnassim/kahva-web), a dedicated HTTP server is not required.
 
 ---
+
+## Features
+
+- [x] List view torrents 
+- [x] List torrent files, trackers, peers
+- [x] Load torrent
+- [x] Manage torrent state
+- [x] Manage global throttle
+- [ ] Manage torrent labels
+- [ ] Manage rTorrent settings
+
+![Torrent view](./screenshot/1.png)
 
 ## Configuration
 
 ### Environment variables
 
+#### Backend
 - `SERVER_ADDRESS` HTTP server bind address, it is `0.0.0.0:8080` by default. 
 - `XMLRPC_URL` Remote XML-RPC server URL, this will be the URL exposed by your nginx (or similar) web server (e.g. `https://yourdomain.tld/rpc`)
 - `XMLRPC_USERNAME` Optional basic authentication username
 - `XMLRPC_PASSWORD` Optional basic authentication password
 - `CORS_ORIGIN` CORS origin if the frontend runs on a different path
 - `CORS_AGE` CORS age if the frontend runs on a different path
+
+#### Frontend
+
+- `VITE_BACKEND_BASE_URL` backend address. It will be `http://localhost:8080` most likely and NOT set by default. This variable is build time only.
 
 ### Remote server setup
 
@@ -79,7 +96,9 @@ Install the Go compiler and run `go build -v -o ./kahva ./cmd`. This should resu
 
 #### Frontend
 
-Install Node and the required dependencies. Run `npm run build`. This should result in a `dist/` directory.
+Clone [the frontend repository](https://github.com/salimnassim/kahva-web)
+
+Install Node and the required dependencies. Run `VITE_BACKEND_BASE_URL=http://localhost:8080 npm run build`. This should result in a `dist/` directory.
 
 Finally move the dist directory on the same level as the backend executable and rename the folder to `www/`.
 
@@ -90,9 +109,54 @@ The directory structure should look rougly like this:
 ./www/
      /index.html
      /assets/
+     /assets/...
 ```
 
 Run the binary with `SERVER_ADDRESS=0.0.0.0:8080 OTHER_ENV_VARAIBLES=... ./kahva`
+
+#### Running
+
+The backend can be used as a standalone application to manage rTorrent. Some examples below.
+
+##### List unregisted torrents
+```
+curl localhost:8080/api/view/main | jq -r '.torrents[] | select(.message | ascii_downcase | contains("unregistered torrent")) | .hash'
+```
+
+### Routes
+
+All API routes are prefixed with `/api`
+
+List all torrents in view (default view is `main`)
+`GET /api/view/{view}`
+
+Show system details (global throttle/rate, versions etc.)
+`GET /api/system`
+
+Load torrent
+`GET /api/load`
+
+the form body should contain a `file` key which holds the file.
+
+List files/peers/trackers
+`GET /api/torrent/{hash}/{files,trackers,peers}`
+
+Set torrent state or force hash re-check
+`GET /api/torrent/{hash}/{start,resume,stop,pause,hash}`
+
+Set torrent priority
+`POST /api/torrent/{hash}/priority`
+
+the JSON body should contain a key `priority` which is an integer between `0` and `3`
+
+Set global throttle
+`POST /api/throttle`
+
+the JSON body should contain a key `type` which is `up` or `down` and key `kilobytes` as an integer which represents the throttle limit.
+
+### Default fields
+
+The backend implements a subset of fields by default. In order to add more fields add them to the correct struct in `rtorrent.go`. The field should contain the corresponding tag for deserialization. 
 
 ## Problems?
 
