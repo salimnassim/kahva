@@ -16,6 +16,8 @@ The backend is used to deserialize XML-RPC requests from rTorrent to more browse
 - [ ] Manage torrent labels
 - [ ] Manage rTorrent settings
 
+## Screenshots
+
 ![Torrent view](./screenshot/1.png)
 ![Torrent expander, sticky](./screenshot/2.png)
 
@@ -128,29 +130,36 @@ curl localhost:8080/api/view/main | jq -r '.torrents[] | select(.message | ascii
 
 All API routes are prefixed with `/api`
 
-List all torrents in view (default view is `main`)
+#####  List all torrents in view (default view is `main`)
+
 `GET /api/view/{view}`
 
-Show system details (global throttle/rate, versions etc.)
+##### Show system details (global throttle/rate, versions etc.)
+
 `GET /api/system`
 
-Load torrent
+##### Load torrent
+
 `GET /api/load`
 
 the form body should contain a `file` key which holds the file.
 
-List files/peers/trackers
+##### List files/peers/trackers
+
 `GET /api/torrent/{hash}/{files,trackers,peers}`
 
-Set torrent state or force hash re-check
+##### Set torrent state or force hash re-check
+
 `GET /api/torrent/{hash}/{start,resume,stop,pause,hash}`
 
-Set torrent priority
+##### Set torrent priority
+
 `POST /api/torrent/{hash}/priority`
 
 the JSON body should contain a key `priority` which is an integer between `0` and `3`
 
-Set global throttle
+##### Set global throttle
+
 `POST /api/throttle`
 
 the JSON body should contain a key `type` which is `up` or `down` and key `kilobytes` as an integer which represents the throttle limit.
