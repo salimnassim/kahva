@@ -1,0 +1,27 @@
+version: '3'
+
+volumes:
+  frontend:
+
+services:
+  vue:
+    build:
+      context: https://github.com/salimnassim/kahva-web.git
+      args:
+        - VITE_BACKEND_BASE_URL=http://localhost:8080
+    volumes:
+      - frontend:/app/dist
+  backend:
+    build:
+      context: https://github.com/salimnassim/kahva.git
+    volumes:
+      - frontend:/app/www
+    environment:
+      - SERVER_ADDRESS=0.0.0.0:8080
+      - XMLRPC_URL=https://yourdomain.tld/rpc
+    #  - XMLRPC_USERNAME=username
+    #  - XMLRPC_PASSWORD=password
+    depends_on:
+      - vue
+    ports:
+      - 0.0.0.0:8080:8080
