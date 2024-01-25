@@ -17,6 +17,7 @@ The backend is used to deserialize XML-RPC requests from rTorrent to more browse
 - [ ] Manage rTorrent settings
 
 ![Torrent view](./screenshot/1.png)
+![Torrent expander, sticky](./screenshot/2.png)
 
 ## Configuration
 
