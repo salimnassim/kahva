@@ -20,6 +20,8 @@ type Torrent struct {
 	DownloadRate   int64  `rt:"d.down.rate=" json:"download_rate"`
 	DownloadTotal  int64  `rt:"d.down.total=" json:"download_total"`
 	Message        string `rt:"d.message=" json:"message"`
+	BaseFilename   string `rt:"d.base_filename=" json:"base_filename"`
+	BasePath       string `rt:"d.base_path=" json:"base_path"`
 	IsActive       int64  `rt:"d.is_active=" json:"is_active"`
 	IsOpen         int64  `rt:"d.is_open=" json:"is_open"`
 	IsHashing      int64  `rt:"d.is_hash_checking=" json:"is_hashing"`
@@ -193,6 +195,15 @@ func (rt *Rtorrent) Resume(hash string) error {
 // Pause torrent with the specified hash
 func (rt *Rtorrent) CheckHash(hash string) error {
 	err := rt.client.Call("d.check_hash", hash, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Erase torrent with the specified hash
+func (rt *Rtorrent) Erase(hash string) error {
+	err := rt.client.Call("d.erase", hash, nil)
 	if err != nil {
 		return err
 	}

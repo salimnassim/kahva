@@ -29,9 +29,10 @@ func ViewHandler(rt *Rtorrent) http.HandlerFunc {
 		args := []interface{}{
 			"", vars["view"],
 			"d.hash=", "d.name=",
-			"d.size_bytes=", "d.completed_bytes=", "d.up.rate=",
-			"d.up.total=", "d.down.rate=", "d.down.total=",
-			"d.message=", "d.is_active=", "d.is_open=",
+			"d.size_bytes=", "d.completed_bytes=",
+			"d.up.rate=", "d.up.total=", "d.down.rate=",
+			"d.down.total=", "d.message=", "d.base_filename=",
+			"d.base_path=", "d.is_active=", "d.is_open=",
 			"d.is_hash_checking=", "d.peers_accounted=", "d.peers_complete=",
 			"d.state=", "d.state_changed=", "d.state_counter=", "d.priority=",
 			"d.custom1=", "d.custom2=", "d.custom3=",
@@ -291,6 +292,22 @@ func TorrentHandler(rt *Rtorrent) http.HandlerFunc {
 			err := rt.CheckHash(vars["hash"])
 			if err != nil {
 				log.Error().Err(err).Msg("unable to hash torrent in action")
+				respond(ErrorResponse{
+					Status:  "error",
+					Message: err.Error(),
+				}, http.StatusBadRequest, w)
+				return
+			}
+			respond(Response{
+				Status: "ok",
+			}, http.StatusOK, w)
+			return
+		}
+
+		if vars["action"] == "erase" {
+			err := rt.Erase(vars["hash"])
+			if err != nil {
+				log.Error().Err(err).Msg("unable to erase torrent in action")
 				respond(ErrorResponse{
 					Status:  "error",
 					Message: err.Error(),
