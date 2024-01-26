@@ -126,7 +126,7 @@ The backend can be used as a standalone application to manage rTorrent. Some exa
 curl localhost:8080/api/view/main | jq -r '.torrents[] | select(.message | ascii_downcase | contains("unregistered torrent")) | .hash'
 ```
 
-### Routes
+#### Routes
 
 All API routes are prefixed with `/api`
 
@@ -150,7 +150,7 @@ the form body should contain a `file` key which holds the file.
 
 ##### Set torrent state or force hash re-check
 
-`GET /api/torrent/{hash}/{start,resume,stop,pause,hash}`
+`GET /api/torrent/{hash}/{start,resume,stop,pause,hash,erase}`
 
 ##### Set torrent priority
 
@@ -164,7 +164,7 @@ the JSON body should contain a key `priority` which is an integer between `0` an
 
 the JSON body should contain a key `type` which is `up` or `down` and key `kilobytes` as an integer which represents the throttle limit.
 
-### Default fields
+#### Default fields
 
 The backend implements a subset of fields by default. In order to add more fields add them to the correct struct in `rtorrent.go`. The field should contain the corresponding tag for deserialization. 
 
