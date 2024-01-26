@@ -117,7 +117,7 @@ The directory structure should look rougly like this:
 
 Run the binary with `SERVER_ADDRESS=0.0.0.0:8080 OTHER_ENV_VARAIBLES=... ./kahva`
 
-#### Running
+### Running
 
 The backend can be used as a standalone application to manage rTorrent. Some examples below.
 
@@ -126,7 +126,7 @@ The backend can be used as a standalone application to manage rTorrent. Some exa
 curl localhost:8080/api/view/main | jq -r '.torrents[] | select(.message | ascii_downcase | contains("unregistered torrent")) | .hash'
 ```
 
-#### Routes
+### Routes
 
 All API routes are prefixed with `/api`
 
@@ -164,7 +164,7 @@ the JSON body should contain a key `priority` which is an integer between `0` an
 
 the JSON body should contain a key `type` which is `up` or `down` and key `kilobytes` as an integer which represents the throttle limit.
 
-#### Default fields
+### Default fields
 
 The backend implements a subset of fields by default. In order to add more fields add them to the correct struct in `rtorrent.go`. The field should contain the corresponding tag for deserialization. 
 
